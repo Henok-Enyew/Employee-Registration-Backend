@@ -7,12 +7,19 @@ from django.urls import (path, include)
 from rest_framework.routers import DefaultRouter
 
 from employee import views
+from .views import EmployeeViewSet
 
+# router = DefaultRouter()
+# router.register('employees', views.EmployeeViewSet)
+
+# app_name ='employee'
+
+# urlpatterns = [
+#     path('',include(router.urls)),
+# ]
 router = DefaultRouter()
-router.register('employees', views.EmployeeViewSet)
-
-app_name ='employee'
+router.register(r'employee', views.EmployeeViewSet, basename='employee')
 
 urlpatterns = [
-    path('',include(router.urls)),
+    path('list/', include(router.urls)),  
 ]
