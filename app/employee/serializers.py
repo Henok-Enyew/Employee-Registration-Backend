@@ -18,6 +18,16 @@ class EmployeeSerializer(serializers.ModelSerializer):
         )
 
         return employee
+    def update(self, instance, validated_data):
+        validated_data.pop('password',None)
+        return super().update(instance,validated_data)
+         
+    # def update_password(self,instance,validated_data):
+    #     password = validated_data.pop('password')
+    #     employee = super().update(instance,validated_data)
+    #     employee.set_password(password)
+    #     employee.save()
+        
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -28,3 +38,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
         # token['is_admin'] = user.is_staff
         return token
+    
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(required=True, write_only=True)
+
+    def validate_current_password(self, value):
+        employee = self.context['request'].user
+        if not employee.check_password(value):
+            raise serializers.ValidationError("Current password is incorrect")
+        return value

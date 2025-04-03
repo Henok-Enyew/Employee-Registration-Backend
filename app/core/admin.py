@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import Employee
 
 class EmployeeAdmin(UserAdmin):
-    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff')
+    list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'is_staff')
     fieldsets = (
         (None, {'fields': ('username', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'email', 'phone_number')}),

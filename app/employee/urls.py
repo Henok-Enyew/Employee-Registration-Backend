@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 from .views import EmployeeViewSet, CustomTokenObtainPairView
 
 router = DefaultRouter()
-router.register(r'employees', EmployeeViewSet, basename='employee')
+router.register(r'employee', EmployeeViewSet, basename='employee')
 
 urlpatterns = [
     path('', include(router.urls)),
