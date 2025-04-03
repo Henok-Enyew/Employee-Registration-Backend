@@ -1,27 +1,17 @@
-"""
-Views for employee API
-"""
-
-from rest_framework import viewsets
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
-
+from rest_framework import viewsets, permissions
+from rest_framework_simplejwt.views import TokenObtainPairView
 from core.models import Employee
-from employee import serializers
-
+from .serializers import EmployeeSerializer, CustomTokenObtainPairSerializer
 
 class EmployeeViewSet(viewsets.ModelViewSet):
-    serializer_class = serializers.EmployeeSerializer
     queryset = Employee.objects.all()
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
+    serializer_class = EmployeeSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    def get_queryset(self):
-        """
-        Retrieve Employees for authenticated user
-        """
-        return self.queryset.order_by('-id')
-    
-    # def perform_create(self):
-    #     """Create new Employee"""
-    #     serializers.save(user=self.)
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()] 
+        return super().get_permissions()
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

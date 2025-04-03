@@ -1,66 +1,69 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.utils import timezone
 import uuid
 
-class Employee(models.Model):
-    """Employee model for storing details"""
+
+class EmployeeManager(BaseUserManager):
+    """Custom manager for Employee model"""
+    
+    def create_user(self, username, password=None, **extra_fields):
+        """Create and save a regular Employee"""
+        if not username:
+            raise ValueError("Username is required")
+        if password is None:
+            password = f"{username.lower()}@1234" 
+    
+        if 'email' in extra_fields:
+            extra_fields['email'] = self.normalize_email(extra_fields['email'])   
+        employee = self.model(
+            username=username, 
+            **extra_fields
+        )
+        employee.set_password(password)
+        employee.save(using=self._db)
+        return employee
+
+    def create_superuser(self, username, password,**extra_fields):
+        """Create and save a superuser Employee"""
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', 'admin')
+        extra_fields.setdefault('is_active', True)
+        
+        return self.create_user(username, password,**extra_fields)
+
+class Employee(AbstractBaseUser, PermissionsMixin):
+    """Single model handling both authentication and employee data"""
+    
+    # Authentication fields
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    employee_id = models.IntegerField(unique=True)  # Auto-incremented manually
-    first_name = models.CharField(max_length=30)
-    middle_name = models.CharField(max_length=30)
-    last_name = models.CharField(max_length=30)
-    phone_number = models.CharField(max_length=15)
-    email = models.EmailField(unique=True)
-    state = models.CharField(max_length=25)
-    citizenship = models.CharField(max_length=25, default='Ethiopia')
-    sex = models.CharField(max_length=10)
-    position = models.CharField(max_length=40, default='Unknown')
-    salary = models.IntegerField()
-    hire_date = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        """Auto-increment employee ID"""
-        if not self.employee_id:
-            last_employee = Employee.objects.order_by('-employee_id').first()
-            self.employee_id = (last_employee.employee_id + 1) if last_employee else 1
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.employee_id} - {self.first_name} {self.last_name}"
-
-class UserManager(BaseUserManager):
-    """User manager"""
-
-    def create_user(self, employee, password=None, **extra_fields):
-        """Create and return a new user"""
-        if not employee:
-            raise ValueError("User must be linked to an employee.")
-        user = self.model(employee=employee, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, password):
-        """Create and return a new superuser"""
-        user = self.model(email=self.normalize_email(email))
-        user.set_password(password)
-        user.is_staff = True
-        user.is_superuser = True
-        user.save(using=self._db)
-        return user
-
-class User(AbstractBaseUser, PermissionsMixin):
-    """User model for authentication"""
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    employee = models.OneToOneField(Employee, on_delete=models.CASCADE, related_name="user")
-    role = models.CharField(max_length=20,  default='employee')
+    username = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    
+    # Employee details
+    first_name = models.CharField(max_length=30, blank=True, null=True)
+    middle_name = models.CharField(max_length=30, blank=True, null=True)
+    last_name = models.CharField(max_length=30, blank=True, null=True)
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    email = models.EmailField(unique=True, blank=True, null=True)
+    
+    # Employment info (all optional)
+    department = models.CharField(max_length=25, blank=True, null=True)
+    role = models.CharField(max_length=20, default='employee', blank=True)
+    state = models.CharField(max_length=25, blank=True, null=True)
+    citizenship = models.CharField(max_length=25, default='Ethiopia', blank=True)
+    sex = models.CharField(max_length=10, blank=True, null=True)
+    position = models.CharField(max_length=40, default='Unknown', blank=True)
+    salary = models.IntegerField(null=True, blank=True)
+    hire_date = models.DateTimeField(null=True, blank=True)
 
-    objects = UserManager()
+    objects = EmployeeManager()
 
-    USERNAME_FIELD = 'employee'
-    REQUIRED_FIELDS = []
+    USERNAME_FIELD = 'username'
+    # REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
 
     def __str__(self):
-        return f"{self.employee.employee_id} - {self.role}"
+        return f"{self.username} - {self.first_name} {self.last_name}"
