@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from core.models import Employee
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth.hashers import check_password
 
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
@@ -22,28 +23,24 @@ class EmployeeSerializer(serializers.ModelSerializer):
         validated_data.pop('password',None)
         return super().update(instance,validated_data)
          
-    # def update_password(self,instance,validated_data):
-    #     password = validated_data.pop('password')
-    #     employee = super().update(instance,validated_data)
-    #     employee.set_password(password)
-    #     employee.save()
         
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        print(user)
         token = super().get_token(user)
-
+        
         token['username'] = user.username
-        # token['is_admin'] = user.is_staff
-        return token
-    
+        token['role'] = user.role
+        default_pattern = f"{user.username.lower()}@1234"  
+        if check_password(default_pattern, user.password):
+            token['requires_password_change'] = True
+            
+        return token    
 
 class PasswordChangeSerializer(serializers.Serializer):
     current_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(required=True, write_only=True)
-
     def validate_current_password(self, value):
         employee = self.context['request'].user
         if not employee.check_password(value):
