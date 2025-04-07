@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import Employee
+from .models import Employee, EmployeeAddress
 
 class EmployeeAdmin(UserAdmin):
     list_display = ('id', 'username', 'email', 'first_name', 'last_name', 'role','is_staff')
@@ -12,3 +12,4 @@ class EmployeeAdmin(UserAdmin):
     )
 
 admin.site.register(Employee, EmployeeAdmin)
+admin.site.register(EmployeeAddress)

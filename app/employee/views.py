@@ -2,8 +2,11 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework_simplejwt.views import TokenObtainPairView
-from core.models import Employee
-from .serializers import EmployeeSerializer, CustomTokenObtainPairSerializer,PasswordChangeSerializer
+from core.models import Employee, EmployeeAddress
+from .serializers import (EmployeeSerializer,
+                           CustomTokenObtainPairSerializer,
+                           PasswordChangeSerializer,
+                             EmployeeAddressSerializer)
 from .permissions import IsAdminUser
 
 class EmployeeViewSet(viewsets.ModelViewSet):
@@ -14,7 +17,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         if self.action in ['create','list', 'retrieve', 'update', 'partial_update', 'destroy','reset_password']:
             # Restrict all actions to admin only
             return [permissions.IsAuthenticated(), IsAdminUser()]
-        return [permissions.IsAuthenticated()]
+        return [permissions.IsAuthenticated()] # 
     
     @action(detail=False, methods=['post'])
     def reset_password(self, request):
@@ -54,3 +57,14 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         return Response({"status": "password updated"}, status=status.HTTP_200_OK)
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+
+class EmployeeAddressViewset(viewsets.ModelViewSet):
+    serializer_class =  EmployeeAddressSerializer 
+    queryset = EmployeeAddress.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        """Retrieve Address for currently authenticated user"""
+        employee_id = self.kwargs('employee_id')
+        return self.queryset.filter(employee=employee_id).order_by('-id')

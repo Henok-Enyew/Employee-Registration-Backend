@@ -1,8 +1,10 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.utils import timezone
+from .enums import RoleChoices, MaxLength, MaritalStatusChoices
 import uuid
-
+from datetime import date
+from django.conf import settings
 
 class EmployeeManager(BaseUserManager):
     """Custom manager for Employee model"""
@@ -38,32 +40,68 @@ class Employee(AbstractBaseUser, PermissionsMixin):
     
     # Authentication fields
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    username = models.CharField(max_length=50, unique=True)
+    username = models.CharField(max_length=MaxLength.USERNAME, unique=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     
     # Employee details
-    first_name = models.CharField(max_length=30, blank=True, null=True)
-    middle_name = models.CharField(max_length=30, blank=True, null=True)
-    last_name = models.CharField(max_length=30, blank=True, null=True)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-    email = models.EmailField(unique=True, blank=True, null=True)
+    first_name = models.CharField(max_length=MaxLength.NAME, blank=True )
+    middle_name = models.CharField(max_length=MaxLength.NAME, blank=True)
+    last_name = models.CharField(max_length=MaxLength.NAME, blank=True)
+    phone_number = models.CharField(max_length=MaxLength.PHONE_NUMBER, blank=True)
+    email = models.EmailField(max_length=MaxLength.EMAIL, unique=True, blank=True)
     
     # Employment info (all optional)
-    department = models.CharField(max_length=25, blank=True, null=True)
-    role = models.CharField(max_length=20, default='employee', blank=True)
-    state = models.CharField(max_length=25, blank=True, null=True)
-    citizenship = models.CharField(max_length=25, default='Ethiopia', blank=True)
-    sex = models.CharField(max_length=10, blank=True, null=True)
-    position = models.CharField(max_length=40, default='Unknown', blank=True)
+    department = models.CharField(max_length=MaxLength.DEPARTMENT, blank=True)
+    role = models.CharField(max_length=MaxLength.ROLE,choices=RoleChoices.choices,  default=RoleChoices.EMPLOYEE)
+    state = models.CharField(max_length=MaxLength.STATE, blank=True, null=True)
+    citizenship = models.CharField(max_length=MaxLength.CITIZENSHIP, default='Ethiopia', blank=True)
+    sex = models.CharField(max_length=MaxLength.SEX, blank=True, null=True)
+    age = models.IntegerField(null=True)
+    marital_status = models.CharField(max_length=MaxLength.MARITAL_STATUS, choices=MaritalStatusChoices.choices, null=True)
+
+    position = models.CharField(max_length=MaxLength.POSITION, default='Unknown', blank=True)
     salary = models.IntegerField(null=True, blank=True)
+
     hire_date = models.DateTimeField(null=True, blank=True)
+    retirement_date = models.DateField(null=True,blank=True)
+    birthdate = models.DateField(null=True,blank=True)
 
     objects = EmployeeManager()
 
     USERNAME_FIELD = 'username'
     # REQUIRED_FIELDS = ['email', 'first_name', 'last_name']
+    def save(self,*args, **kwargs):
+        if self.birthdate:
+            retirement_age = 60
+            retirement_year = self.birthdate.year + 60
+            today = date.today()
+            self.age = today.year - self.birthdate.year -  ((today.month, today.day) < (self.birthdate.month, self.birthdate.day))
+            self.retirement_date = date(retirement_year,self.birthdate.month, self.birthdate.day)
+        
+        super().save(*args,**args)
 
     def __str__(self):
         return f"{self.username} - {self.first_name} {self.last_name}"
+
+
+
+class EmployeeAddress(models.Model):
+    employee = models.OneToOneField(
+        settings.AUTH_USER_MODEL, # could have been just Employee just to make dynamic dude?
+        on_delete= models.CASCADE,
+        related_name="address",
+        primary_key=True
+    )
+    kebele = models.CharField(max_length=MaxLength.KEBELE,blank=True)
+    city = models.CharField(max_length=MaxLength.CITY,blank=True)
+    pobox = models.CharField(max_length=MaxLength.PO_BOX,blank=True)
+    office_phone_number = models.CharField(max_length=MaxLength.PHONE_NUMBER,blank=True)
+    home_phone_number = models.CharField(max_length=MaxLength.PHONE_NUMBER,blank=True)
+    home_number = models.CharField(max_length=MaxLength.NAME, blank=True)
+    birth_place = models.CharField(max_length=MaxLength.NAME, blank=True)
+
+    def __str__(self):
+        return str(self.employee)
+    

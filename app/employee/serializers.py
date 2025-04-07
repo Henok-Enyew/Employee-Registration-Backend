@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from core.models import Employee
+from core.models import Employee, EmployeeAddress
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.hashers import check_password
 
@@ -46,3 +46,10 @@ class PasswordChangeSerializer(serializers.Serializer):
         if not employee.check_password(value):
             raise serializers.ValidationError("Current password is incorrect")
         return value
+    
+
+class EmployeeAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmployeeAddress
+        fields = ['id','kebele', 'city', 'pobox', 'office_phone_number','home_phone_number','home_number','birth_place']
+        read_only_fields = ['id']
