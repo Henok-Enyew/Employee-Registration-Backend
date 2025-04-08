@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from rest_framework.response import Response
+from rest_framework import status
 from core.models import Employee, EmployeeAddress
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth.hashers import check_password
@@ -6,7 +8,7 @@ from django.contrib.auth.hashers import check_password
 class EmployeeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employee
-        fields = ['id','username','email',    'first_name','middle_name','last_name','phone_number',    'department','position','salary','hire_date',    'state','citizenship','sex','created_at']
+        fields = ['id','username','email','first_name','middle_name','last_name','phone_number',    'department','position','salary','hire_date',    'state','citizenship','sex','created_at']
         extra_kwargs = {
             'password': {'write_only': True},
              'created_at': {'read_only': True}
@@ -23,20 +25,26 @@ class EmployeeSerializer(serializers.ModelSerializer):
         validated_data.pop('password',None)
         return super().update(instance,validated_data)
          
-        
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        
-        token['username'] = user.username
-        token['role'] = user.role
-        default_pattern = f"{user.username.lower()}@1234"  
-        if check_password(default_pattern, user.password):
-            token['requires_password_change'] = True
-            
-        return token    
+
+   def validate(self, attrs):
+        data = super().validate(attrs)
+        employee = self.user
+        default_pattern = f"{employee.username.lower()}@1234"
+        if check_password(default_pattern, employee.password):
+            return {
+                'access_token': data['access'],
+                'refresh_token': data['refresh'],
+                'role':employee.role,
+                'changedefaultpassword': True  
+            }
+        return {
+            'access_token': data['access'],
+            'refresh_token': data['refresh'],
+            'role':employee.role,
+        }
+
 
 class PasswordChangeSerializer(serializers.Serializer):
     current_password = serializers.CharField(required=True, write_only=True)
@@ -51,5 +59,36 @@ class PasswordChangeSerializer(serializers.Serializer):
 class EmployeeAddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeeAddress
-        fields = ['id','kebele', 'city', 'pobox', 'office_phone_number','home_phone_number','home_number','birth_place']
-        read_only_fields = ['id']
+        fields = ['kebele', 'city', 'pobox', 'office_phone_number','home_phone_number','home_number','birth_place']
+
+
+
+
+
+
+
+
+
+
+
+
+# class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+#     @classmethod
+#     def get_token(cls, user):
+#         token = super().get_token(user)
+        
+#         token['username'] = user.username
+#         token['role'] = user.role
+#         default_pattern = f"{user.username.lower()}@1234"  
+#         if check_password(default_pattern, user.password):
+#             data = {
+#                     "message": "The employee need to change his defualt password",
+#                     "status": "success",
+#                     "data": {
+#                         None
+#                     }
+#                 }
+#             return Response(data,status=status.HTTP_200_OK) 
+#             # token['requires_password_change'] = True
+#         return token    
+        

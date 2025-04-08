@@ -5,6 +5,7 @@ from .enums import RoleChoices, MaxLength, MaritalStatusChoices
 import uuid
 from datetime import date
 from django.conf import settings
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 class EmployeeManager(BaseUserManager):
     """Custom manager for Employee model"""
@@ -58,7 +59,7 @@ class Employee(AbstractBaseUser, PermissionsMixin):
     state = models.CharField(max_length=MaxLength.STATE, blank=True, null=True)
     citizenship = models.CharField(max_length=MaxLength.CITIZENSHIP, default='Ethiopia', blank=True)
     sex = models.CharField(max_length=MaxLength.SEX, blank=True, null=True)
-    age = models.IntegerField(null=True)
+    age = models.IntegerField(validators=[MinValueValidator(18), MaxValueValidator(100)], null=True )
     marital_status = models.CharField(max_length=MaxLength.MARITAL_STATUS, choices=MaritalStatusChoices.choices, null=True)
 
     position = models.CharField(max_length=MaxLength.POSITION, default='Unknown', blank=True)
@@ -75,12 +76,12 @@ class Employee(AbstractBaseUser, PermissionsMixin):
     def save(self,*args, **kwargs):
         if self.birthdate:
             retirement_age = 60
-            retirement_year = self.birthdate.year + 60
+            retirement_year = self.birthdate.year + retirement_age
             today = date.today()
             self.age = today.year - self.birthdate.year -  ((today.month, today.day) < (self.birthdate.month, self.birthdate.day))
             self.retirement_date = date(retirement_year,self.birthdate.month, self.birthdate.day)
         
-        super().save(*args,**args)
+        super().save(*args,**kwargs)
 
     def __str__(self):
         return f"{self.username} - {self.first_name} {self.last_name}"
@@ -89,7 +90,7 @@ class Employee(AbstractBaseUser, PermissionsMixin):
 
 class EmployeeAddress(models.Model):
     employee = models.OneToOneField(
-        settings.AUTH_USER_MODEL, # could have been just Employee just to make dynamic dude?
+        Employee, # could have been just Employee just to make dynamic dude?
         on_delete= models.CASCADE,
         related_name="address",
         primary_key=True

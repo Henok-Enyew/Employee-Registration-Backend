@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status,mixins
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -8,8 +8,12 @@ from .serializers import (EmployeeSerializer,
                            PasswordChangeSerializer,
                              EmployeeAddressSerializer)
 from .permissions import IsAdminUser
+from django.shortcuts import get_object_or_404
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, CreateAPIView
+from rest_framework.exceptions import NotFound, ValidationError
 
 class EmployeeViewSet(viewsets.ModelViewSet):
+    http_method_names = ['get', 'post', 'delete','patch']
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
     # permission_classes = [permissions.IsAuthenticatedOrReadOnly]
@@ -59,12 +63,35 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
 
-class EmployeeAddressViewset(viewsets.ModelViewSet):
-    serializer_class =  EmployeeAddressSerializer 
-    queryset = EmployeeAddress.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+class EmployeeAddressViewSet(viewsets.GenericViewSet,
+                             mixins.RetrieveModelMixin,
+                             mixins.CreateModelMixin,
+                             mixins.UpdateModelMixin,
+                             mixins.DestroyModelMixin):
+    serializer_class = EmployeeAddressSerializer
+    lookup_field = 'employee_id'
 
     def get_queryset(self):
-        """Retrieve Address for currently authenticated user"""
-        employee_id = self.kwargs('employee_id')
-        return self.queryset.filter(employee=employee_id).order_by('-id')
+        return EmployeeAddress.objects.select_related('employee')
+
+    def get_object(self):
+        employee_id = self.kwargs.get('employee_id')
+        try:
+            employee = Employee.objects.get(id=employee_id)
+            return employee.address
+        except Employee.DoesNotExist:
+            raise NotFound("Employee with that id does not exist!")
+        except EmployeeAddress.DoesNotExist:
+            raise NotFound("The address of the employee has not been set yet! :(")
+
+    def perform_create(self, serializer):
+        employee_id = self.kwargs.get('employee_id')
+        try:
+            employee = Employee.objects.get(id=employee_id)
+        except Employee.DoesNotExist:
+            raise NotFound("Employee with that id does not exist!")
+
+        if hasattr(employee, 'address'):
+            raise ValidationError("Address already exists for this employee.")
+
+        serializer.save(employee=employee)

@@ -1,11 +1,11 @@
 from rest_framework import permissions
-
+from core.enums import RoleChoices
 class IsAdminUser(permissions.BasePermission):
     """
     Allows access only to admin users (role='admin')
     """
     def has_permission(self, request, view):
-        return bool(request.user and request.user.role == 'admin')
+        return bool(request.user and request.user.role == RoleChoices.HR_MANAGER)
 
 class IsOwnerOrAdmin(permissions.BasePermission):
     """
