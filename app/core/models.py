@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
 from django.utils import timezone
-from .enums import RoleChoices, MaxLength, MaritalStatusChoices
+from .enums import RoleChoices, MaxLength, MaritalStatusChoices, RelationChoices
 import uuid
 from datetime import date
 from django.conf import settings
@@ -45,11 +45,14 @@ class Employee(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(default=timezone.now, editable=False)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
     
     # Employee details
     first_name = models.CharField(max_length=MaxLength.NAME, blank=True )
     middle_name = models.CharField(max_length=MaxLength.NAME, blank=True)
     last_name = models.CharField(max_length=MaxLength.NAME, blank=True)
+    mother_name = models.CharField(max_length=MaxLength.NAME, blank=True)
     phone_number = models.CharField(max_length=MaxLength.PHONE_NUMBER, blank=True)
     email = models.EmailField(max_length=MaxLength.EMAIL, unique=True, blank=True)
     
@@ -65,7 +68,7 @@ class Employee(AbstractBaseUser, PermissionsMixin):
     position = models.CharField(max_length=MaxLength.POSITION, default='Unknown', blank=True)
     salary = models.IntegerField(null=True, blank=True)
 
-    hire_date = models.DateTimeField(null=True, blank=True)
+    hire_date = models.DateField(null=True, blank=True)
     retirement_date = models.DateField(null=True,blank=True)
     birthdate = models.DateField(null=True,blank=True)
 
@@ -106,3 +109,16 @@ class EmployeeAddress(models.Model):
     def __str__(self):
         return str(self.employee)
     
+
+class EmployeeFamily(models.Model):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="family",
+    )
+    name = models.CharField(max_length=MaxLength.NAME*2)
+    relation = models.CharField(max_length=MaxLength.NAME,choices=RelationChoices.choices ,blank=True)
+    birthdate = models.DateField(null=True,blank=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.relation}) - {self.employee.first_name} {self.employee.last_name}"

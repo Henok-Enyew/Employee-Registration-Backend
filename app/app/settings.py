@@ -13,6 +13,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
+load_dotenv() 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -90,10 +93,10 @@ WSGI_APPLICATION = 'app.wsgi.application'
 DATABASES = {
     'default': {
        'ENGINE':'django.db.backends.postgresql',
-       'HOST':os.environ.get('DB_HOST'),
-       'NAME':os.environ.get('DB_NAME'),
-       'USER':os.environ.get('DB_USER'),
-       'PASSWORD':os.environ.get('DB_PASS'),
+       'HOST':os.getenv('DB_HOST'),
+       'NAME':os.getenv('DB_NAME'),
+       'USER':os.getenv('DB_USER'),
+       'PASSWORD':os.getenv('DB_PASS'),
     }
 }
 
@@ -155,3 +158,14 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,                 
     'BLACKLIST_AFTER_ROTATION': True,              
 }
+
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'henokenyew86@gmail.com' 
+EMAIL_HOST_PASSWORD = '4b77637224452d'
+DEFAULT_FROM_EMAIL = 'Employee Registration <henokenyew86@gmail.com>'
+FRONTEND_URL='http://192.168.0.118:5173/'

@@ -5,12 +5,19 @@ class RoleChoices(models.TextChoices):
     HR_OFFICER = 'HR Officer'
     EMPLOYEE = 'Employee'
 
+class RelationChoices(models.TextChoices):
+    SPOUSE = "SPOUSE", "Spouse"
+    CHILD = "CHILD", "Child"
+    PARENT = "PARENT", "Parent"
+    OTHER = "OTHER", "Other Relative"
+
 class MaritalStatusChoices(models.TextChoices):
     SINGLE = 'Single', 'Single'
     MARRIED = 'Married', 'Married'
     DIVORCED = 'Divorced', 'Divorced'
     WIDOWED = 'Widowed', 'Widowed'
     SEPARATED = 'Separated', 'Separated'
+
 
 class MaxLength:
     USERNAME = 50

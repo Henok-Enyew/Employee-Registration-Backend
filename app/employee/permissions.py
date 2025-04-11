@@ -1,6 +1,20 @@
 from rest_framework import permissions
 from core.enums import RoleChoices
-class IsAdminUser(permissions.BasePermission):
+from rest_framework.exceptions import PermissionDenied
+
+class IsVerified(permissions.BasePermission):
+    """
+    Allows access only to Verifed Users
+    """
+    message = "Please verify your email address to access this resource."
+    
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_verified):
+            raise PermissionDenied(detail=self.message)
+        return True
+    
+
+class IsHRManager(permissions.BasePermission):
     """
     Allows access only to admin users (role='admin')
     """
