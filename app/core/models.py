@@ -47,6 +47,7 @@ class Employee(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(default=timezone.now, editable=False)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
+    otp_secret = models.CharField(max_length=32, null=True, blank=True) 
     
     # Employee details
     first_name = models.CharField(max_length=MaxLength.NAME, blank=True )

@@ -5,16 +5,22 @@ from rest_framework.decorators import action
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import UntypedToken
 from core.models import Employee, EmployeeAddress, EmployeeFamily
+from .utils import generate_otp, verify_otp, send_verification_email
 from .serializers import (EmployeeSerializer,
                            CustomTokenObtainPairSerializer,
                            PasswordChangeSerializer,
                              EmployeeAddressSerializer,
-                             EmployeeFamilySerializer)
+                             EmployeeFamilySerializer,
+                             CurrentEmployeeAddressSerializer,
+                             CurrentEmployeeFamilySerializer,
+                             EmployeeSignUpSerializer,
+                             VerifyEmailAndSetPasswordSerializer)
 from .permissions import IsHRManager,IsVerified
 from django.shortcuts import get_object_or_404
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, CreateAPIView
 from rest_framework.exceptions import NotFound, ValidationError
 from django.utils import timezone
+from datetime import date
 
 class EmployeeViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'delete','patch']
@@ -64,56 +70,93 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         return Response({"status": "password updated"}, status=status.HTTP_200_OK)
 
 
-class VerifyEmailView(APIView):
-    """
-    Verify user email using JWT token
-    """
-    def get(self, request):
-        token = request.query_params.get('token')
-        
-        if not token:
-            return Response(
-                {"error": "Verification token is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+class SendOTPView(viewsets.GenericViewSet):
+    serializer_class = EmployeeSignUpSerializer
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny])
+    def signup(self,request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
         try:
-            validated_token = UntypedToken(token)
-            user_id = validated_token['user_id']
-            
-            # Get user and verify
-            user = Employee.objects.get(id=user_id)
-            if user.is_verified:
-                return Response(
-                    {"message": "Email is already verified"},
-                    status=status.HTTP_200_OK
-                )
-            
-            # Mark as verified
-            user.is_verified = True
-            user.verified_at = timezone.now()  # Optional: track verification time
-            user.save()
-            
-            return Response(
-                {"message": "Email verified successfully!"},
-                status=status.HTTP_200_OK
-            )
-            
-        except (InvalidToken, TokenError) as e:
-            return Response(
-                {"error": "Invalid or expired verification link"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            employee = Employee.objects.get(email = email)
+            if employee.is_verified:
+                return Response({'message': "You are already verified, Login to your account"})
+            totp = generate_otp()
+            employee.otp_secret = totp
+            send_verification_email(employee)
+            employee.save()
+            return Response({'message': "The OTP has been sent"} ,status=status.HTTP_200_OK)
         except Employee.DoesNotExist:
-            return Response(
-                {"error": "User not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            raise NotFound("Employee with that email does not exist!")
+           
+
+class VerifyEmailAndSetPasswordView(viewsets.GenericViewSet):
+    """Verify OTP, set Password"""    
+    serializer_class = VerifyEmailAndSetPasswordSerializer
+    @action(detail=False, method=['post'], permission_classes=[permissions.AllowAny])
+    def verify_email_and_set_password(self, request):
+        email = request.data.get("email")
+        try:
+            employee = Employee.objects.get(email = email)
+            if employee.is_verified:
+                return Response({'message': "The user with this email already verified niggah"}, status=status.HTTP_400_BAD_REQUEST)
+        except Employee.DoesNotExist:
+            raise NotFound("Employee with that email does not exist!")
+        serializer = self.get_serializer(instance=employee, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        otp_from_user = serializer.validated_data['otp_secret']
+        otp = employee.otp_secret
+        is_otp_correct = verify_otp(otp, otp_from_user)
+        
+        if is_otp_correct:
+            serializer.save()  
+            return Response({'message': "Account verified successfully"}, status=status.HTTP_200_OK)
+        else:
+            return Response({'message': "The OTP didn't match or expired"}, status=status.HTTP_400_BAD_REQUEST)
+
+class CurrentEmployeeAddressView(viewsets.GenericViewSet):
+    """ Getting the address of currently authenticated employee"""
+
+    serializer_class = CurrentEmployeeAddressSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    @action(detail=False, methods=['get'], url_path='get_my_address')
+    def get_my_address(self, request):
+        employee_id = request.user.id
+        try:
+            employee = Employee.objects.get(id=employee_id)
+            address = employee.address
+            serializer = self.get_serializer(address)
+            if not address:
+                return Response({'message': "The address of the employee has not been set yet"}, status.HTTP_404_NOT_FOUND)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Employee.DoesNotExist:
+            raise NotFound("Employee with that id does not exist!")
+
+
+class CurrentEmployeeFamilyView(viewsets.GenericViewSet):
+    """ Get the family memebers of currently authenticated employee"""
+
+    serializer_class = CurrentEmployeeFamilySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    @action(detail=False, methods=['get'], url_path='get_my_families')
+    def get_my_families(self, request):
+        employee_id = request.user.id
+        try:
+            employee = Employee.objects.get(id=employee_id)
+            family_members = employee.family
+            serializer = self.get_serializer(family_members, many=True)
+            if not family_members:
+                return Response({'message': "The Family Members of the employee has not been set yet"}, status.HTTP_404_NOT_FOUND)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Employee.DoesNotExist:
+            raise NotFound("Employee with that id does not exist!")
+           
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     """  View to log the user in"""
     serializer_class = CustomTokenObtainPairSerializer
-    permissions_classes = [IsVerified]
+    # permission_classes = [IsVerified]
 
 
 class EmployeeAddressViewSet(viewsets.GenericViewSet,

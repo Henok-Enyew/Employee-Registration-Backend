@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Verification Code</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        line-height: 1.6;
+        color: #333333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 25px;
+        background-color: #ffffff;
+      }
+      .header {
+        color: #2c3e50;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        text-align: center;
+      }
+      .otp-code {
+        font-size: 28px;
+        font-weight: bold;
+        color: #3498db;
+        text-align: center;
+        margin: 25px 0;
+        letter-spacing: 3px;
+      }
+      .expiry {
+        color: #e74c3c;
+        font-weight: bold;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 24px;
+        background-color: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+        margin: 20px 0;
+        text-align: center;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #7f8c8d;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">Your Verification Code</div>
+
+      <p>Hi {{instance.first_name }},</p>
+
+      <p>Here is your one-time verification code:</p>
+
+      <div class="otp-code">{{otp.otp_code}}</div>
+
+      <p>This code will expire in <span class="expiry">5 minutes</span>.</p>
+
+      <p>Click the button below to verify your email:</p>
+
+      <div style="text-align: center">
+        <a href="{{verify_url}}" class="button"> Verify My Email </a>
+      </div>
+
+      <p>
+        Or copy and paste this URL into your browser:<br />
+        {{verify_url}}
+      </p>
+
+      <div class="footer">
+        If you didn't request this code, please ignore this email.
+      </div>
+    </div>
+  </body>
+</html>

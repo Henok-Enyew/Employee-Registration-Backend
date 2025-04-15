@@ -42,7 +42,7 @@ class EmployeeAdmin(UserAdmin):
         (None, {'fields': ('username', 'password')}),
         ('Personal Info', {'fields': ('first_name', 'last_name', 'email', 'phone_number', 'marital_status','age')}),
         ('Work Info', {'fields': ('department', 'position', 'salary','role')}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'is_verified', 'verified_at')}),
     )
     inlines = (EmployeeAddressInline,EmployeeFamilyInline)
 
