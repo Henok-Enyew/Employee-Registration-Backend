@@ -31,7 +31,7 @@ class EmployeeManager(BaseUserManager):
         """Create and save a superuser Employee"""
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('role', 'admin')
+        extra_fields.setdefault('role', RoleChoices.HR_MANAGER)
         extra_fields.setdefault('is_active', True)
         
         return self.create_user(username, password,**extra_fields)
